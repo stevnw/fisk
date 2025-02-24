@@ -1,20 +1,50 @@
 local anglefish = love.graphics.newImage("anglefish.png")
 local clownfish = love.graphics.newImage("clownfish.png")
 local neon_tetra = love.graphics.newImage("neon_tetra.png")
+local bubbleImg = love.graphics.newImage("bubble.png")
 
 local fish = {}
-
-function round(num, numDecimalPlaces)
-    local mult = 10^(numDecimalPlaces or 0)
-    return math.floor(num * mult + 0.5) / mult
-end
+local bubbles = {}
 
 function love.load()
     love.window.setMode(900, 700)
     love.window.setTitle("fisk")
+
+    for i = 1, 10 do
+        spawnBubble()
+    end
+end
+
+function spawnBubble()
+    table.insert(bubbles, {
+        x = love.math.random(0, 900),
+        y = love.math.random(750, 1000),
+        speed = love.math.random(30, 80),
+        scale = love.math.random(30, 50) / 100,
+        flipped = love.math.random(0, 1) == 1,
+        wobble = love.math.random() < 0.5,
+        wobbleTimer = love.math.random(0, 2 * math.pi),
+        wobbleSpeed = love.math.random(2, 4),
+        wobbleAmount = love.math.random(5, 15)
+    })
 end
 
 function love.update(dt)
+    for i = #bubbles, 1, -1 do
+        local b = bubbles[i]
+        b.y = b.y - b.speed * dt
+
+        if b.wobble then
+            b.wobbleTimer = b.wobbleTimer + dt * b.wobbleSpeed
+            b.x = b.x + math.sin(b.wobbleTimer) * b.wobbleAmount * dt
+        end
+
+        if b.y < -bubbleImg:getHeight() * b.scale then
+            table.remove(bubbles, i)
+            spawnBubble()
+        end
+    end
+
     for i, f in ipairs(fish) do
         if f.state == "moving" then
             local dx = f.targetX - f.x
@@ -52,6 +82,12 @@ end
 
 function love.draw()
     love.graphics.setBackgroundColor(0.6, 0.8, 0.9)
+
+    for _, b in ipairs(bubbles) do
+        local scaleX = b.flipped and -b.scale or b.scale
+        love.graphics.draw(bubbleImg, b.x, b.y, 0, scaleX, b.scale)
+    end
+
     love.graphics.setColor(1, 1, 1)
     for i, f in ipairs(fish) do
         local scaleX = f.flipped and -0.2 or 0.2
